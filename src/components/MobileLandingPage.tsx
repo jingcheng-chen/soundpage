@@ -3,7 +3,6 @@ import {
   FileText,
   Mic2,
   Monitor,
-  Sparkles,
   Zap,
   Play,
   Lock
@@ -157,74 +156,66 @@ export function MobileLandingPage() {
 
         {/* Desktop Experience Bridge */}
         <motion.section
-          variants={scaleIn}
+          variants={slideUp}
           initial="hidden"
           whileInView="visible"
           viewport={{ once: true }}
+          className="relative pt-8 pb-4"
         >
-          <div className={cn(
-            'p-8 rounded-3xl bg-surface-high border-2 border-accent/20',
-            'flex flex-col items-center text-center gap-6 relative overflow-hidden'
-          )}>
-            {/* Background Accent */}
-            <div className="absolute -bottom-10 -right-10 w-40 h-40 bg-accent/5 blur-3xl rounded-full" />
-
-            <div className="w-16 h-16 rounded-2xl bg-accent flex items-center justify-center shadow-xl shadow-accent/20">
-              <Monitor className="w-8 h-8 text-white" />
-            </div>
-
-            <div className="space-y-3 relative z-10">
-              <h3 className="text-h1 font-bold tracking-tight">
-                Connect on Desktop
-              </h3>
-              <p className="text-body text-text-secondary leading-relaxed max-w-[280px]">
-                To protect your privacy, SoundPage runs an AI model entirely on your device.
-              </p>
-              <div className="pt-2 flex flex-col gap-2">
-                <div className="flex items-center justify-center gap-2 text-sm font-semibold text-accent">
-                  <Sparkles className="w-4 h-4" />
-                  <span>Full features available on Desktop</span>
+          <div className="text-center space-y-10">
+            <div className="flex flex-col items-center gap-6">
+              <div className="relative group/monitor">
+                <div className="absolute inset-0 bg-accent/20 blur-3xl rounded-full scale-150 group-hover/monitor:scale-175 transition-transform duration-700 opacity-50" />
+                <div className="relative w-20 h-20 bg-surface border border-border/80 rounded-3xl flex items-center justify-center shadow-2xl backdrop-blur-sm transform group-hover/monitor:-translate-y-1 transition-all duration-300">
+                  <Monitor className="w-10 h-10 text-accent" strokeWidth={1.5} />
                 </div>
-                <p className="text-[12px] text-text-tertiary">
-                  Works best on Chrome, Edge, and Safari.
+              </div>
+
+              <div className="space-y-3">
+                <h3 className="text-h1 font-bold tracking-tight">Desktop Only</h3>
+                <p className="text-body text-text-secondary max-w-[300px] mx-auto leading-relaxed">
+                  SoundPage runs heavy AI models entirely on your device for maximum privacy.
+                  <span className="block mt-2 text-text-tertiary text-sm">
+                    Mobile browsers currently lack the memory support required to run these models.
+                  </span>
                 </p>
               </div>
             </div>
 
-            <div className="w-full h-px bg-border/50 my-2" />
+            <div className="grid grid-cols-2 gap-4 max-w-xs mx-auto">
+              <div className="p-4 rounded-[20px] bg-surface border border-border/40 text-center space-y-1 transition-colors hover:bg-surface-high">
+                <div className="text-[10px] font-bold text-text-tertiary uppercase tracking-widest">Platform</div>
+                <div className="text-sm font-bold text-text-primary">Desktop Only</div>
+              </div>
+              <div className="p-4 rounded-[20px] bg-surface border border-border/40 text-center space-y-1 transition-colors hover:bg-surface-high">
+                <div className="text-[10px] font-bold text-text-tertiary uppercase tracking-widest">Privacy</div>
+                <div className="text-sm font-bold text-text-secondary">Local AI</div>
+              </div>
+            </div>
 
-            <div className="flex items-center gap-2 text-text-tertiary">
-              <div className="w-2 h-2 rounded-full bg-success" />
-              <span className="text-xs font-medium">Ready for your next session</span>
+            <div className="space-y-2">
+              <p className="text-[11px] text-text-tertiary font-semibold tracking-wide uppercase px-6">
+                Please visit us on Chrome, Edge, or Safari for Desktop
+              </p>
+              <div className="w-12 h-1 bg-accent/10 mx-auto rounded-full" />
             </div>
           </div>
         </motion.section>
 
         {/* Footer */}
-        <footer className="text-center space-y-4 pt-4 pb-12">
-          <div className="flex items-center justify-center gap-4 opacity-40">
+        <footer className="text-center space-y-4 pb-16 border-t border-border/40">
+          <div className="flex flex-col items-center gap-6">
             <a
-              href="https://github.com/supertone-inc/supertonic"
+              href="https://github.com/jingcheng-chen/soundpage"
               target="_blank"
               rel="noopener noreferrer"
-              className="inline-block text-xs font-bold text-accent hover:underline transition-all"
+              className="flex items-center gap-2 px-4 py-2 rounded-full bg-surface-high border border-border text-text-secondary hover:text-text-primary hover:bg-surface transition-all duration-300 transform active:scale-95"
             >
-              <a
-                href="https://github.com/jingcheng-chen/soundpage"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="p-2 rounded-lg text-text-tertiary hover:text-text-primary hover:bg-surface transition-colors"
-                aria-label="GitHub"
-              >
-                <svg xmlns="http://www.w3.org/2000/svg" x="0px" y="0px" width="24" height="24" viewBox="0 0 30 30">
-                  <path d="M15,3C8.373,3,3,8.373,3,15c0,5.623,3.872,10.328,9.092,11.63C12.036,26.468,12,26.28,12,26.047v-2.051 c-0.487,0-1.303,0-1.508,0c-0.821,0-1.551-0.353-1.905-1.009c-0.393-0.729-0.461-1.844-1.435-2.526 c-0.289-0.227-0.069-0.486,0.264-0.451c0.615,0.174,1.125,0.596,1.605,1.222c0.478,0.627,0.703,0.769,1.596,0.769 c0.433,0,1.081-0.025,1.691-0.121c0.328-0.833,0.895-1.6,1.588-1.962c-3.996-0.411-5.903-2.399-5.903-5.098 c0-1.162,0.495-2.286,1.336-3.233C9.053,10.647,8.706,8.73,9.435,8c1.798,0,2.885,1.166,3.146,1.481C13.477,9.174,14.461,9,15.495,9 c1.036,0,2.024,0.174,2.922,0.483C18.675,9.17,19.763,8,21.565,8c0.732,0.731,0.381,2.656,0.102,3.594 c0.836,0.945,1.328,2.066,1.328,3.226c0,2.697-1.904,4.684-5.894,5.097C18.199,20.49,19,22.1,19,23.313v2.734 c0,0.104-0.023,0.179-0.035,0.268C23.641,24.676,27,20.236,27,15C27,8.373,21.627,3,15,3z"></path>
-                </svg>
-              </a>
+              <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M15 22v-4a4.8 4.8 0 0 0-1-3.5c3 0 6-2 6-5.5.08-1.25-.27-2.48-1-3.5.28-1.15.28-2.35 0-3.5 0 0-1 0-3 1.5-2.64-.5-5.36-.5-8 0C6 2 5 2 5 2c-.3 1.15-.3 2.35 0 3.5A5.403 5.403 0 0 0 4 9c0 3.5 3 5.5 6 5.5-.39.49-.68 1.05-.85 1.65-.17.6-.22 1.23-.15 1.85v4"></path><path d="M9 18c-4.51 2-5-2-7-2"></path></svg>
+              <span className="text-xs font-bold tracking-tight">View Github</span>
             </a>
           </div>
-          <p className="text-caption text-text-tertiary">
-            Open Source & Privacy First
-          </p>
+
         </footer>
       </div>
     </motion.div>
