@@ -142,8 +142,7 @@ export function LandingPage({ onSubmit, onToggleSidebar }: LandingPageProps) {
             Transform your text into natural speech.
           </p>
           <p className="text-sm md:text-body text-text-tertiary mt-0.5 md:mt-1">
-            Lightning fast, no cloud, no tracking, purely private. Even runs in Airplane Mode.
-
+            Lightning fast, no cloud, no tracking, purely private. The AI runs on your device.
           </p>
         </div>
 
