@@ -4,6 +4,8 @@
 
 SoundPage is a privacy-focused web application that transforms documents into natural speech using [Supertonic](https://github.com/supertone-inc/supertonic), an open-source TTS model by Supertone. All processing happens entirely in your browser via ONNX Runtime Web — your documents never leave your device.
 
+![SoundPage Demo](soundpage.mp4)
+
 ## Features
 
 - **Document Import** — Drag & drop support for `.txt`, `.md`, `.docx`, `.pdf`, and `.epub`
