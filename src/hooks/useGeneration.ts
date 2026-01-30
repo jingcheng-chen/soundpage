@@ -107,6 +107,13 @@ export function useGeneration() {
       } else {
         const message = err instanceof Error ? err.message : 'Generation failed'
         setGenerationError(message)
+
+        // Check if this was a WebGPU failure - trigger automatic reinitialization
+        if (engine.hasWebGPUFailure()) {
+          console.warn('WebGPU failure detected, triggering WASM reinitialization...')
+          // The reinitialization will be handled by useEngine hook
+          // The error message already tells the user to try again
+        }
       }
     }
   }, [

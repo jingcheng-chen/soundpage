@@ -18,8 +18,26 @@ import {
   loadTextProcessor,
   loadVoiceStyle,
   loadTTSConfig,
+  setForceWasm,
+  isWasmForced,
 } from './models'
 import { preCacheAllAssets, areAssetsCached } from '../db'
+
+/**
+ * Check if an error is a WebGPU buffer mapping failure
+ */
+function isWebGPUBufferError(error: unknown): boolean {
+  if (!(error instanceof Error)) return false
+  const msg = error.message.toLowerCase()
+  return (
+    msg.includes('mapasync') ||
+    msg.includes('gpubuffer') ||
+    msg.includes('webgpu') ||
+    msg.includes('device lost') ||
+    msg.includes('gpu device') ||
+    msg.includes('validation error')
+  )
+}
 
 export class TTSEngine {
   private models: TTSModels | null = null
@@ -29,6 +47,7 @@ export class TTSEngine {
   private backend: 'webgpu' | 'wasm' = 'wasm'
   private _isReady: boolean = false
   private cancelRequested: boolean = false
+  private webgpuFailureDetected: boolean = false
 
   /**
    * Get sample rate from config
@@ -39,14 +58,17 @@ export class TTSEngine {
 
   /**
    * Initialize the TTS engine
+   * @param onProgress - Progress callback
+   * @param forceWasm - Force WASM backend (skips WebGPU detection)
    */
   async initialize(
-    onProgress?: (status: string, progress: number) => void
+    onProgress?: (status: string, progress: number) => void,
+    forceWasm?: boolean
   ): Promise<void> {
     try {
       // Detect backend
       onProgress?.('Detecting hardware...', 0)
-      this.backend = await detectBackend()
+      this.backend = await detectBackend(forceWasm)
       onProgress?.(`Using ${this.backend.toUpperCase()}`, 10)
 
       // Load TTS config
@@ -209,11 +231,22 @@ export class TTSEngine {
     const textMaskTensor = new ort.Tensor('float32', textMaskFlat, textMaskShape)
 
     // Duration prediction
-    const dpOutputs = await models.durationPredictor.run({
-      text_ids: textIdsTensor,
-      style_dp: style.dp,
-      text_mask: textMaskTensor,
-    })
+    let dpOutputs
+    try {
+      dpOutputs = await models.durationPredictor.run({
+        text_ids: textIdsTensor,
+        style_dp: style.dp,
+        text_mask: textMaskTensor,
+      })
+    } catch (error) {
+      if (isWebGPUBufferError(error) && this.backend === 'webgpu') {
+        this.webgpuFailureDetected = true
+        throw new Error(
+          'WebGPU inference failed. The engine will automatically switch to WASM mode. Please try again.'
+        )
+      }
+      throw error
+    }
     const duration = Array.from(dpOutputs.duration.data as Float32Array)
 
     // Apply speed factor to duration
@@ -222,11 +255,22 @@ export class TTSEngine {
     }
 
     // Text encoding
-    const textEncOutputs = await models.textEncoder.run({
-      text_ids: textIdsTensor,
-      style_ttl: style.ttl,
-      text_mask: textMaskTensor,
-    })
+    let textEncOutputs
+    try {
+      textEncOutputs = await models.textEncoder.run({
+        text_ids: textIdsTensor,
+        style_ttl: style.ttl,
+        text_mask: textMaskTensor,
+      })
+    } catch (error) {
+      if (isWebGPUBufferError(error) && this.backend === 'webgpu') {
+        this.webgpuFailureDetected = true
+        throw new Error(
+          'WebGPU inference failed. The engine will automatically switch to WASM mode. Please try again.'
+        )
+      }
+      throw error
+    }
     const textEmb = textEncOutputs.text_emb
 
     // Sample noisy latent
@@ -268,15 +312,26 @@ export class TTSEngine {
       const xtShape = [bsz, xt[0].length, xt[0][0].length]
       const xtTensor = new ort.Tensor('float32', xtFlat, xtShape)
 
-      const vectorEstOutputs = await models.vectorEstimator.run({
-        noisy_latent: xtTensor,
-        text_emb: textEmb,
-        style_ttl: style.ttl,
-        latent_mask: latentMaskTensor,
-        text_mask: textMaskTensor,
-        current_step: currentStepTensor,
-        total_step: totalStepTensor,
-      })
+      let vectorEstOutputs
+      try {
+        vectorEstOutputs = await models.vectorEstimator.run({
+          noisy_latent: xtTensor,
+          text_emb: textEmb,
+          style_ttl: style.ttl,
+          latent_mask: latentMaskTensor,
+          text_mask: textMaskTensor,
+          current_step: currentStepTensor,
+          total_step: totalStepTensor,
+        })
+      } catch (error) {
+        if (isWebGPUBufferError(error) && this.backend === 'webgpu') {
+          this.webgpuFailureDetected = true
+          throw new Error(
+            'WebGPU inference failed. The engine will automatically switch to WASM mode. Please try again.'
+          )
+        }
+        throw error
+      }
 
       const denoised = Array.from(
         vectorEstOutputs.denoised_latent.data as Float32Array
@@ -305,9 +360,20 @@ export class TTSEngine {
     const finalXtShape = [bsz, xt[0].length, xt[0][0].length]
     const finalXtTensor = new ort.Tensor('float32', finalXtFlat, finalXtShape)
 
-    const vocoderOutputs = await models.vocoder.run({
-      latent: finalXtTensor,
-    })
+    let vocoderOutputs
+    try {
+      vocoderOutputs = await models.vocoder.run({
+        latent: finalXtTensor,
+      })
+    } catch (error) {
+      if (isWebGPUBufferError(error) && this.backend === 'webgpu') {
+        this.webgpuFailureDetected = true
+        throw new Error(
+          'WebGPU inference failed. The engine will automatically switch to WASM mode. Please try again.'
+        )
+      }
+      throw error
+    }
 
     const wav = Array.from(vocoderOutputs.wav_tts.data as Float32Array)
 
@@ -476,6 +542,51 @@ export class TTSEngine {
    */
   isInitialized(): boolean {
     return this._isReady
+  }
+
+  /**
+   * Check if a WebGPU failure was detected during inference
+   */
+  hasWebGPUFailure(): boolean {
+    return this.webgpuFailureDetected
+  }
+
+  /**
+   * Reset the engine state for reinitialization
+   */
+  reset(): void {
+    this.models = null
+    this.textProcessor = null
+    this.cfgs = null
+    this.voiceStyles.clear()
+    this._isReady = false
+    this.cancelRequested = false
+  }
+
+  /**
+   * Reinitialize the engine with WASM backend after WebGPU failure
+   */
+  async reinitializeWithWasm(
+    onProgress?: (status: string, progress: number) => void
+  ): Promise<void> {
+    console.warn('Reinitializing TTS engine with WASM backend...')
+
+    // Mark WASM as forced for future sessions
+    setForceWasm(true)
+
+    // Reset engine state
+    this.reset()
+    this.webgpuFailureDetected = false
+
+    // Reinitialize with forced WASM
+    await this.initialize(onProgress, true)
+  }
+
+  /**
+   * Check if WASM mode is forced
+   */
+  isWasmForced(): boolean {
+    return isWasmForced()
   }
 }
 

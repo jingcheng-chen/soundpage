@@ -43,6 +43,8 @@ export function useEngine() {
     loadingStatus,
     loadingProgress,
     error,
+    webgpuFailed,
+    isReinitializing,
     setInitializing,
     setReady,
     setFirstLoad,
@@ -51,6 +53,8 @@ export function useEngine() {
     setLoadingStatus,
     setLoadingProgress,
     setError,
+    setWebgpuFailed,
+    setReinitializing,
   } = useEngineStore()
 
   // Use a ref to prevent multiple initialization calls
@@ -103,6 +107,39 @@ export function useEngine() {
     }
   }, [setInitializing, setReady, setFirstLoad, setMobileUnsupported, setBackend, setLoadingStatus, setLoadingProgress, setError])
 
+  /**
+   * Check if the engine has detected a WebGPU failure and needs reinitialization
+   */
+  const checkAndReinitialize = useCallback(async () => {
+    const engine = getTTSEngine()
+
+    // Check if WebGPU failure was detected during inference
+    if (engine.hasWebGPUFailure() && !isReinitializing) {
+      setReinitializing(true)
+      setWebgpuFailed(true)
+      setReady(false)
+      setError(null)
+      initializedRef.current = false
+
+      try {
+        await engine.reinitializeWithWasm((status, progress) => {
+          setLoadingStatus(status)
+          setLoadingProgress(progress)
+        })
+
+        setBackend(engine.getBackend())
+        setReady(true)
+        initializedRef.current = true
+      } catch (err) {
+        const message = err instanceof Error ? err.message : 'Failed to reinitialize with WASM'
+        setError(message)
+        console.error('WASM reinitialization failed:', err)
+      } finally {
+        setReinitializing(false)
+      }
+    }
+  }, [isReinitializing, setReinitializing, setWebgpuFailed, setReady, setError, setBackend, setLoadingStatus, setLoadingProgress])
+
   return {
     isInitializing,
     isReady,
@@ -112,6 +149,9 @@ export function useEngine() {
     loadingStatus,
     loadingProgress,
     error,
+    webgpuFailed,
+    isReinitializing,
     initialize,
+    checkAndReinitialize,
   }
 }

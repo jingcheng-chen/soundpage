@@ -14,7 +14,7 @@ import { fadeIn } from '@/lib/motion'
 type ViewState = 'loading' | 'landing' | 'content' | 'mobile'
 
 export default function App() {
-  const { isReady, isMobileUnsupported, initialize } = useEngine()
+  const { isReady, isMobileUnsupported, isReinitializing, initialize, checkAndReinitialize } = useEngine()
   const {
     currentSessionId,
     loadSessions,
@@ -33,10 +33,19 @@ export default function App() {
     loadSessions()
   }, [initialize, loadSessions])
 
+  // Check for WebGPU failures and trigger reinitialization
+  const { generation } = useAudioStore()
+  useEffect(() => {
+    // When a generation error occurs, check if it's a WebGPU failure
+    if (generation.error && generation.error.includes('WebGPU')) {
+      checkAndReinitialize()
+    }
+  }, [generation.error, checkAndReinitialize])
+
   // Determine current view
   const getViewState = (): ViewState => {
     if (isMobileUnsupported) return 'mobile'
-    if (!isReady) return 'loading'
+    if (!isReady || isReinitializing) return 'loading'
     if (currentSessionId) return 'content'
     return 'landing'
   }

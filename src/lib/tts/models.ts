@@ -21,6 +21,41 @@ const ASSETS_BASE = '/assets'
 const ONNX_PATH = `${ASSETS_BASE}/onnx`
 const VOICE_PATH = `${ASSETS_BASE}/voice_styles`
 
+const FORCE_WASM_KEY = 'soundpage-force-wasm'
+
+/**
+ * Check if WASM mode is forced (due to previous WebGPU failures)
+ */
+export function isWasmForced(): boolean {
+  try {
+    return localStorage.getItem(FORCE_WASM_KEY) === 'true'
+  } catch {
+    return false
+  }
+}
+
+/**
+ * Force WASM mode for future sessions
+ */
+export function setForceWasm(force: boolean): void {
+  try {
+    if (force) {
+      localStorage.setItem(FORCE_WASM_KEY, 'true')
+    } else {
+      localStorage.removeItem(FORCE_WASM_KEY)
+    }
+  } catch {
+    // localStorage not available
+  }
+}
+
+/**
+ * Clear the forced WASM setting (for testing/reset)
+ */
+export function clearForceWasm(): void {
+  setForceWasm(false)
+}
+
 /**
  * Check if a model file exists.
  * Returns true on network errors to allow offline mode (ONNX Runtime may have cached models).
@@ -38,7 +73,13 @@ async function checkFileExists(url: string): Promise<boolean> {
 /**
  * Detect best available execution provider
  */
-export async function detectBackend(): Promise<'webgpu' | 'wasm'> {
+export async function detectBackend(forceWasm?: boolean): Promise<'webgpu' | 'wasm'> {
+  // Check if WASM is forced (due to previous WebGPU failures or explicit setting)
+  if (forceWasm || isWasmForced()) {
+    console.log('Using WASM backend (forced)')
+    return 'wasm'
+  }
+
   // Check for WebGPU support
   if ('gpu' in navigator) {
     try {

@@ -7,7 +7,7 @@ import { scaleIn, fadeIn, pulse } from '@/lib/motion'
 import logo from '/favicon.svg'
 
 export const LoadingScreen: React.FC = () => {
-  const { loadingStatus, loadingProgress, error, isFirstLoad, isMobileUnsupported } = useEngine()
+  const { loadingStatus, loadingProgress, error, isFirstLoad, isMobileUnsupported, webgpuFailed, isReinitializing } = useEngine()
 
   return (
     <motion.div
@@ -97,7 +97,12 @@ export const LoadingScreen: React.FC = () => {
               <p className="text-sm text-text-secondary">
                 {loadingStatus || 'Initializing...'}
               </p>
-              {isFirstLoad && (
+              {isReinitializing && webgpuFailed && (
+                <p className="text-xs text-warning mt-3 px-4">
+                  WebGPU encountered an error. Switching to WASM backend for better compatibility...
+                </p>
+              )}
+              {isFirstLoad && !isReinitializing && (
                 <p className="text-xs text-text-secondary mt-3 px-4">
                   First time setup - downloading AI models for offline use. This may take a minute, but future loads will be much faster.
                 </p>
